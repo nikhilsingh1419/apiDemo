@@ -21,7 +21,7 @@ public class JournalEntryController {
         // Default entry 1
         JournalEntry entry1 = new JournalEntry();
         entry1.setId(1);
-        entry1.setTitle("First Journal Entry");
+        entry1.setTitle("First Journal Entry of nikhil singh");
         entry1.setContent("This is the content of the first default journal entry.");
         journalEntries.put(1L, entry1);
         
