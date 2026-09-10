@@ -43,10 +43,7 @@ public class JournalEntryController {
             JournalEntry saved = journalEntryService.create(userId, entry);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (ApiException ex) {
-            if (ex.getStatus() == HttpStatus.BAD_REQUEST) {
-                return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
-            }
-            throw ex;
+            return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
         }
     }
 
