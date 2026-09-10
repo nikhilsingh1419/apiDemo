@@ -72,6 +72,7 @@ public class AuthService {
         user.setName(request.getFullName().trim());
         user.setAuthProvider(AuthProvider.EMAIL);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        assignEmailUserIdentity(user);
         user = userRepository.save(user);
 
         return buildAuthResponse(user, authProperties.getJwtExpirationMs());
@@ -230,6 +231,7 @@ public class AuthService {
         user.setName(resolveDevUserName(request));
         user.setAuthProvider(AuthProvider.EMAIL);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        assignEmailUserIdentity(user);
         user = userRepository.save(user);
         return buildAuthResponse(user, authProperties.getJwtExpirationMs());
     }
@@ -336,5 +338,9 @@ public class AuthService {
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase();
+    }
+
+    private void assignEmailUserIdentity(User user) {
+        user.setGoogleSub("email:" + user.getEmail());
     }
 }
