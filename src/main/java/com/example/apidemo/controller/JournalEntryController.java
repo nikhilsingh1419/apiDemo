@@ -2,7 +2,6 @@ package com.example.apidemo.controller;
 
 import com.example.apidemo.entity.JournalEntry;
 import com.example.apidemo.exception.ApiException;
-import com.example.apidemo.security.AuthenticatedUser;
 import com.example.apidemo.security.SecurityUtils;
 import com.example.apidemo.service.JournalEntryService;
 import org.springframework.http.HttpStatus;
@@ -23,15 +22,15 @@ public class JournalEntryController {
 
     @GetMapping
     public ResponseEntity<List<JournalEntry>> getAllEntries() {
-        AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-        return ResponseEntity.ok(journalEntryService.getAllForUser(currentUser.userId()));
+        Long userId = SecurityUtils.optionalCurrentUser().map(user -> user.userId()).orElse(null);
+        return ResponseEntity.ok(journalEntryService.getAll(userId));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getEntryById(@PathVariable Long id) {
         try {
-            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-            return ResponseEntity.ok(journalEntryService.getByIdForUser(id, currentUser.userId()));
+            Long userId = SecurityUtils.optionalCurrentUser().map(user -> user.userId()).orElse(null);
+            return ResponseEntity.ok(journalEntryService.getById(id, userId));
         } catch (ApiException ex) {
             return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
         }
@@ -40,8 +39,8 @@ public class JournalEntryController {
     @PostMapping
     public ResponseEntity<?> createEntry(@RequestBody(required = false) JournalEntry entry) {
         try {
-            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-            JournalEntry saved = journalEntryService.create(currentUser.userId(), entry);
+            Long userId = SecurityUtils.optionalCurrentUser().map(user -> user.userId()).orElse(null);
+            JournalEntry saved = journalEntryService.create(userId, entry);
             return ResponseEntity.status(HttpStatus.CREATED).body(saved);
         } catch (ApiException ex) {
             if (ex.getStatus() == HttpStatus.BAD_REQUEST) {
@@ -54,8 +53,8 @@ public class JournalEntryController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEntry(@PathVariable Long id, @RequestBody JournalEntry updatedEntry) {
         try {
-            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-            return ResponseEntity.ok(journalEntryService.update(id, currentUser.userId(), updatedEntry));
+            Long userId = SecurityUtils.optionalCurrentUser().map(user -> user.userId()).orElse(null);
+            return ResponseEntity.ok(journalEntryService.update(id, userId, updatedEntry));
         } catch (ApiException ex) {
             if (ex.getStatus() == HttpStatus.NOT_FOUND || ex.getStatus() == HttpStatus.BAD_REQUEST) {
                 return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
@@ -67,8 +66,8 @@ public class JournalEntryController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEntry(@PathVariable Long id) {
         try {
-            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-            journalEntryService.delete(id, currentUser.userId());
+            Long userId = SecurityUtils.optionalCurrentUser().map(user -> user.userId()).orElse(null);
+            journalEntryService.delete(id, userId);
             return ResponseEntity.ok("Journal entry with ID " + id + " deleted successfully.");
         } catch (ApiException ex) {
             return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());

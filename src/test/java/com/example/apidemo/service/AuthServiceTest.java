@@ -2,6 +2,7 @@ package com.example.apidemo.service;
 
 import com.example.apidemo.config.AuthProperties;
 import com.example.apidemo.dto.AuthResponse;
+import com.example.apidemo.dto.DevCreateUserRequest;
 import com.example.apidemo.dto.LoginRequest;
 import com.example.apidemo.dto.RegisterRequest;
 import com.example.apidemo.entity.AuthProvider;
@@ -137,5 +138,39 @@ class AuthServiceTest {
 
         ApiException ex = assertThrows(ApiException.class, () -> authService.login(request));
         assertEquals(HttpStatus.UNAUTHORIZED, ex.getStatus());
+    }
+
+    @Test
+    void devCreateUserCreatesAccountWhenJwtNotRequired() {
+        AuthProperties authProperties = new AuthProperties();
+        authProperties.setJwtSecret("test-jwt-secret-key-with-at-least-32-bytes");
+        authProperties.setRequireJwt(false);
+
+        JwtService jwtService = new JwtService(authProperties);
+        jwtService.init();
+
+        AuthService devAuthService = new AuthService(
+                googleTokenVerifierService,
+                userRepository,
+                passwordResetTokenRepository,
+                jwtService,
+                passwordEncoder,
+                authProperties);
+
+        DevCreateUserRequest request = new DevCreateUserRequest();
+        request.setEmail("dev@example.com");
+        request.setPassword("secret123");
+
+        when(userRepository.existsByEmail("dev@example.com")).thenReturn(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            user.setId(9L);
+            return user;
+        });
+
+        AuthResponse response = devAuthService.createDevUser(request);
+
+        assertEquals("dev@example.com", response.getUser().getEmail());
+        assertNotNull(response.getAccessToken());
     }
 }

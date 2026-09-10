@@ -61,7 +61,7 @@ class JournalEntryServiceTest {
     void getByIdForUserReturnsNotFoundWhenMissing() {
         when(journalEntryRepository.findByIdAndUserId(99L, 5L)).thenReturn(Optional.empty());
 
-        ApiException ex = assertThrows(ApiException.class, () -> journalEntryService.getByIdForUser(99L, 5L));
+        ApiException ex = assertThrows(ApiException.class, () -> journalEntryService.getById(99L, 5L));
         assertEquals(HttpStatus.NOT_FOUND, ex.getStatus());
     }
 }

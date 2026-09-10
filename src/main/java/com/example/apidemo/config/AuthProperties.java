@@ -14,6 +14,7 @@ public class AuthProperties {
     private long jwtRememberMeExpirationMs = 604_800_000L;
     private long jwtShortExpirationMs = 86_400_000L;
     private long passwordResetExpirationMs = 3_600_000L;
+    private boolean requireJwt = false;
 
     public List<String> getGoogleClientIds() {
         return googleClientIds;
@@ -61,5 +62,13 @@ public class AuthProperties {
 
     public void setPasswordResetExpirationMs(long passwordResetExpirationMs) {
         this.passwordResetExpirationMs = passwordResetExpirationMs;
+    }
+
+    public boolean isRequireJwt() {
+        return requireJwt;
+    }
+
+    public void setRequireJwt(boolean requireJwt) {
+        this.requireJwt = requireJwt;
     }
 }

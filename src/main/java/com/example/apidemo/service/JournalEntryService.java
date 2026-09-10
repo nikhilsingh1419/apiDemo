@@ -5,6 +5,7 @@ import com.example.apidemo.entity.User;
 import com.example.apidemo.exception.ApiException;
 import com.example.apidemo.repository.JournalEntryRepository;
 import com.example.apidemo.repository.UserRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,21 @@ public class JournalEntryService {
     }
 
     @Transactional(readOnly = true)
-    public List<JournalEntry> getAllForUser(Long userId) {
-        return journalEntryRepository.findByUserIdOrderByIdDesc(userId);
+    public List<JournalEntry> getAll(Long userId) {
+        if (userId != null) {
+            return journalEntryRepository.findByUserIdOrderByIdDesc(userId);
+        }
+        return journalEntryRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
     }
 
     @Transactional(readOnly = true)
-    public JournalEntry getByIdForUser(Long id, Long userId) {
-        return journalEntryRepository.findByIdAndUserId(id, userId)
+    public JournalEntry getById(Long id, Long userId) {
+        if (userId != null) {
+            return journalEntryRepository.findByIdAndUserId(id, userId)
+                    .orElseThrow(() -> new ApiException(
+                            HttpStatus.NOT_FOUND, "Journal entry with ID " + id + " not found."));
+        }
+        return journalEntryRepository.findById(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND, "Journal entry with ID " + id + " not found."));
     }
@@ -43,8 +52,7 @@ public class JournalEntryService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Title is required.");
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
+        User user = resolveUser(userId);
 
         JournalEntry journalEntry = new JournalEntry();
         journalEntry.setUser(user);
@@ -55,7 +63,7 @@ public class JournalEntryService {
 
     @Transactional
     public JournalEntry update(Long id, Long userId, JournalEntry updatedEntry) {
-        JournalEntry existing = getByIdForUser(id, userId);
+        JournalEntry existing = getById(id, userId);
         if (updatedEntry.getTitle() == null || updatedEntry.getTitle().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Title is required.");
         }
@@ -66,9 +74,25 @@ public class JournalEntryService {
 
     @Transactional
     public void delete(Long id, Long userId) {
-        if (!journalEntryRepository.existsByIdAndUserId(id, userId)) {
+        if (userId != null) {
+            if (!journalEntryRepository.existsByIdAndUserId(id, userId)) {
+                throw new ApiException(HttpStatus.NOT_FOUND, "Journal entry with ID " + id + " not found.");
+            }
+        } else if (!journalEntryRepository.existsById(id)) {
             throw new ApiException(HttpStatus.NOT_FOUND, "Journal entry with ID " + id + " not found.");
         }
         journalEntryRepository.deleteById(id);
+    }
+
+    private User resolveUser(Long userId) {
+        if (userId != null) {
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
+        }
+        return userRepository.findAll().stream()
+                .findFirst()
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "No users found. Create one with POST /auth/dev/create-user first."));
     }
 }

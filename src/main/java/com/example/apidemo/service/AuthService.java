@@ -203,6 +203,44 @@ public class AuthService {
         return new MessageResponse("Logged out successfully.");
     }
 
+    @Transactional
+    public AuthResponse createDevUser(DevCreateUserRequest request) {
+        if (authProperties.isRequireJwt()) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Dev endpoint is disabled when REQUIRE_JWT=true.");
+        }
+        if (request == null
+                || request.getEmail() == null
+                || request.getEmail().isBlank()
+                || request.getPassword() == null
+                || request.getPassword().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email and password are required.");
+        }
+        if (request.getPassword().length() < 6) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Password must be at least 6 characters.");
+        }
+        if (!isValidEmail(request.getEmail())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "A valid email is required.");
+        }
+        if (userRepository.existsByEmail(normalizeEmail(request.getEmail()))) {
+            throw new ApiException(HttpStatus.CONFLICT, "An account with this email already exists.");
+        }
+
+        User user = new User();
+        user.setEmail(normalizeEmail(request.getEmail()));
+        user.setName(resolveDevUserName(request));
+        user.setAuthProvider(AuthProvider.EMAIL);
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user = userRepository.save(user);
+        return buildAuthResponse(user, authProperties.getJwtExpirationMs());
+    }
+
+    private String resolveDevUserName(DevCreateUserRequest request) {
+        if (request.getName() != null && !request.getName().isBlank()) {
+            return request.getName().trim();
+        }
+        return request.getEmail().substring(0, request.getEmail().indexOf('@'));
+    }
+
     private User createGoogleUser(GoogleTokenVerifierService.GoogleUserInfo googleUser) {
         User user = new User();
         user.setGoogleSub(googleUser.googleId());

@@ -19,9 +19,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final AuthProperties authProperties;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter, AuthProperties authProperties) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.authProperties = authProperties;
     }
 
     @Bean
@@ -29,19 +31,24 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/health-check").permitAll()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/auth/google",
-                                "/auth/register",
-                                "/auth/login",
-                                "/auth/forgot-password",
-                                "/auth/reset-password")
-                        .permitAll()
-                        .requestMatchers("/journal/**").authenticated()
-                        .requestMatchers("/auth/**").authenticated()
-                        .anyRequest().authenticated())
+                .authorizeHttpRequests(auth -> {
+                    if (authProperties.isRequireJwt()) {
+                        auth.requestMatchers("/health-check").permitAll()
+                                .requestMatchers(
+                                        HttpMethod.POST,
+                                        "/auth/google",
+                                        "/auth/register",
+                                        "/auth/login",
+                                        "/auth/forgot-password",
+                                        "/auth/reset-password")
+                                .permitAll()
+                                .requestMatchers("/journal/**").authenticated()
+                                .requestMatchers("/auth/**").authenticated()
+                                .anyRequest().authenticated();
+                    } else {
+                        auth.anyRequest().permitAll();
+                    }
+                })
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

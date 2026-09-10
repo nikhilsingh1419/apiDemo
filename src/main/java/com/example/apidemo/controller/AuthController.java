@@ -1,7 +1,6 @@
 package com.example.apidemo.controller;
 
 import com.example.apidemo.dto.*;
-import com.example.apidemo.security.AuthenticatedUser;
 import com.example.apidemo.security.SecurityUtils;
 import com.example.apidemo.service.AuthService;
 import com.example.apidemo.service.InvalidGoogleTokenException;
@@ -44,6 +43,11 @@ public class AuthController {
         return ResponseEntity.ok(authService.login(request));
     }
 
+    @PostMapping("/dev/create-user")
+    public ResponseEntity<AuthResponse> devCreateUser(@RequestBody DevCreateUserRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.createDevUser(request));
+    }
+
     @PostMapping("/forgot-password")
     public ResponseEntity<MessageResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
         return ResponseEntity.ok(authService.forgotPassword(request));
@@ -55,21 +59,32 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserProfileResponse> getCurrentUser() {
-        AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-        return ResponseEntity.ok(authService.getCurrentUser(currentUser.userId()));
+    public ResponseEntity<?> getCurrentUser() {
+        return SecurityUtils.optionalCurrentUser()
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(authService.getCurrentUser(user.userId())))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse(
+                                "No authenticated user. Login first or pass Authorization: Bearer <token>.")));
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<UserProfileResponse> updateProfile(@RequestBody UpdateProfileRequest request) {
-        AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-        return ResponseEntity.ok(authService.updateProfile(currentUser.userId(), request));
+    public ResponseEntity<?> updateProfile(@RequestBody UpdateProfileRequest request) {
+        return SecurityUtils.optionalCurrentUser()
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(
+                        authService.updateProfile(user.userId(), request)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse(
+                                "No authenticated user. Login first or pass Authorization: Bearer <token>.")));
     }
 
     @PutMapping("/password")
-    public ResponseEntity<MessageResponse> changePassword(@RequestBody ChangePasswordRequest request) {
-        AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
-        return ResponseEntity.ok(authService.changePassword(currentUser.userId(), request));
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+        return SecurityUtils.optionalCurrentUser()
+                .<ResponseEntity<?>>map(user -> ResponseEntity.ok(
+                        authService.changePassword(user.userId(), request)))
+                .orElseGet(() -> ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(new MessageResponse(
+                                "No authenticated user. Login first or pass Authorization: Bearer <token>.")));
     }
 
     @PostMapping("/logout")
