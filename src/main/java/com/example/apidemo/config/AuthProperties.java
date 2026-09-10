@@ -11,6 +11,9 @@ public class AuthProperties {
     private List<String> googleClientIds = new ArrayList<>();
     private String jwtSecret = "";
     private long jwtExpirationMs = 604_800_000L;
+    private long jwtRememberMeExpirationMs = 604_800_000L;
+    private long jwtShortExpirationMs = 86_400_000L;
+    private long passwordResetExpirationMs = 3_600_000L;
 
     public List<String> getGoogleClientIds() {
         return googleClientIds;
@@ -34,5 +37,29 @@ public class AuthProperties {
 
     public void setJwtExpirationMs(long jwtExpirationMs) {
         this.jwtExpirationMs = jwtExpirationMs;
+    }
+
+    public long getJwtRememberMeExpirationMs() {
+        return jwtRememberMeExpirationMs;
+    }
+
+    public void setJwtRememberMeExpirationMs(long jwtRememberMeExpirationMs) {
+        this.jwtRememberMeExpirationMs = jwtRememberMeExpirationMs;
+    }
+
+    public long getJwtShortExpirationMs() {
+        return jwtShortExpirationMs;
+    }
+
+    public void setJwtShortExpirationMs(long jwtShortExpirationMs) {
+        this.jwtShortExpirationMs = jwtShortExpirationMs;
+    }
+
+    public long getPasswordResetExpirationMs() {
+        return passwordResetExpirationMs;
+    }
+
+    public void setPasswordResetExpirationMs(long passwordResetExpirationMs) {
+        this.passwordResetExpirationMs = passwordResetExpirationMs;
     }
 }

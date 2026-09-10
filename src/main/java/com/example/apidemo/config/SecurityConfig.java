@@ -31,8 +31,16 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/health-check").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/auth/google").permitAll()
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/auth/google",
+                                "/auth/register",
+                                "/auth/login",
+                                "/auth/forgot-password",
+                                "/auth/reset-password")
+                        .permitAll()
                         .requestMatchers("/journal/**").authenticated()
+                        .requestMatchers("/auth/**").authenticated()
                         .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((request, response, authException) -> {

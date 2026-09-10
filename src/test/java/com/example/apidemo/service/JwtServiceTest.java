@@ -25,7 +25,7 @@ class JwtServiceTest {
     void generatesAndParsesToken() {
         User user = new User();
         user.setId(42L);
-        user.setGoogleId("google-123");
+        user.setGoogleSub("google-123");
         user.setEmail("user@example.com");
 
         String token = jwtService.generateToken(user);

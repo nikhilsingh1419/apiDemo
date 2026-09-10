@@ -36,13 +36,16 @@ public class JwtService {
     }
 
     public String generateToken(User user) {
+        return generateToken(user, authProperties.getJwtExpirationMs());
+    }
+
+    public String generateToken(User user, long expirationMs) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + authProperties.getJwtExpirationMs());
+        Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
                 .subject(String.valueOf(user.getId()))
                 .claim("email", user.getEmail())
-                .claim("googleId", user.getGoogleId())
                 .issuedAt(now)
                 .expiration(expiry)
                 .signWith(secretKey)
@@ -63,6 +66,10 @@ public class JwtService {
 
     public long getExpirationSeconds() {
         return authProperties.getJwtExpirationMs() / 1000;
+    }
+
+    public long toExpirationSeconds(long expirationMs) {
+        return expirationMs / 1000;
     }
 
     public record JwtClaims(Long userId, String email) {

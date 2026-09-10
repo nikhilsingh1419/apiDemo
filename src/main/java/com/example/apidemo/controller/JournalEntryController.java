@@ -1,7 +1,10 @@
 package com.example.apidemo.controller;
 
 import com.example.apidemo.entity.JournalEntry;
-import com.example.apidemo.repository.JournalEntryRepository;
+import com.example.apidemo.exception.ApiException;
+import com.example.apidemo.security.AuthenticatedUser;
+import com.example.apidemo.security.SecurityUtils;
+import com.example.apidemo.service.JournalEntryService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,58 +15,63 @@ import java.util.List;
 @RequestMapping("/journal")
 public class JournalEntryController {
 
-    private final JournalEntryRepository journalEntryRepository;
+    private final JournalEntryService journalEntryService;
 
-    public JournalEntryController(JournalEntryRepository journalEntryRepository) {
-        this.journalEntryRepository = journalEntryRepository;
+    public JournalEntryController(JournalEntryService journalEntryService) {
+        this.journalEntryService = journalEntryService;
     }
 
     @GetMapping
     public ResponseEntity<List<JournalEntry>> getAllEntries() {
-        return ResponseEntity.ok(journalEntryRepository.findAll());
+        AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
+        return ResponseEntity.ok(journalEntryService.getAllForUser(currentUser.userId()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getEntryById(@PathVariable Long id) {
-        return journalEntryRepository.findById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Journal entry with ID " + id + " not found."));
+        try {
+            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
+            return ResponseEntity.ok(journalEntryService.getByIdForUser(id, currentUser.userId()));
+        } catch (ApiException ex) {
+            return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
+        }
     }
 
     @PostMapping
     public ResponseEntity<?> createEntry(@RequestBody(required = false) JournalEntry entry) {
-        if (entry == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Request body is required with journal entry data.");
+        try {
+            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
+            JournalEntry saved = journalEntryService.create(currentUser.userId(), entry);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (ApiException ex) {
+            if (ex.getStatus() == HttpStatus.BAD_REQUEST) {
+                return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
+            }
+            throw ex;
         }
-        if (entry.getTitle() == null || entry.getTitle().isBlank()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Title is required.");
-        }
-        entry.setId(null);
-        JournalEntry saved = journalEntryRepository.save(entry);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateEntry(@PathVariable Long id, @RequestBody JournalEntry updatedEntry) {
-        return journalEntryRepository.findById(id)
-                .<ResponseEntity<?>>map(existing -> {
-                    updatedEntry.setId(id);
-                    return ResponseEntity.ok(journalEntryRepository.save(updatedEntry));
-                })
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body("Journal entry with ID " + id + " not found."));
+        try {
+            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
+            return ResponseEntity.ok(journalEntryService.update(id, currentUser.userId(), updatedEntry));
+        } catch (ApiException ex) {
+            if (ex.getStatus() == HttpStatus.NOT_FOUND || ex.getStatus() == HttpStatus.BAD_REQUEST) {
+                return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
+            }
+            throw ex;
+        }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteEntry(@PathVariable Long id) {
-        if (journalEntryRepository.existsById(id)) {
-            journalEntryRepository.deleteById(id);
+        try {
+            AuthenticatedUser currentUser = SecurityUtils.requireCurrentUser();
+            journalEntryService.delete(id, currentUser.userId());
             return ResponseEntity.ok("Journal entry with ID " + id + " deleted successfully.");
+        } catch (ApiException ex) {
+            return ResponseEntity.status(ex.getStatus()).body(ex.getMessage());
         }
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body("Journal entry with ID " + id + " not found.");
     }
 }
